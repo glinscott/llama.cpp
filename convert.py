@@ -1020,6 +1020,8 @@ def nth_multifile_path(path: Path, n: int) -> Optional[Path]:
         (r'-[0-9]{5}-of-(.*)$', fr'-{n:05}-of-\1'),
         # x.bin, x.bin.1, etc.
         (r'(\.[0-9]+)?$', r'\1' if n == 0 else fr'\1.{n}')
+        # -0.bin, -1.bin, etc. (vicuna)
+        (r'-[0-9]+\.bin$', f'-{n}.bin'),
     ]
     for regex, replacement in patterns:
         if re.search(regex, path.name):
@@ -1051,7 +1053,7 @@ def load_some_model(path: Path) -> ModelPlus:
     '''Load a model of any supported format.'''
     # Be extra-friendly and accept either a file or a directory:
     if path.is_dir():
-        globs = ["consolidated.00.pth", "pytorch_model-00001-of-*.bin", "*.pt"]
+        globs = ["consolidated.00.pth", "pytorch_model-00001-of-*.bin", "pytorch_model-0.bin", "*.pt"]
         files = [file for glob in globs for file in path.glob(glob)]
         if not files:
             # Try GGML too, but with lower priority, since if both a non-GGML

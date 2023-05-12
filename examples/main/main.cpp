@@ -168,6 +168,20 @@ int main(int argc, char ** argv) {
     // tokenize the prompt
     auto embd_inp = ::llama_tokenize(ctx, params.prompt, true);
 
+    for (int i = 0; i < embd_inp.size(); ++i) {
+        if (llama_token_to_str(ctx, embd_inp[i])[0] == '<') {
+            for (int j = i + 1; j < embd_inp.size(); ++j) {
+                std::string s = llama_token_to_str(ctx, embd_inp[j]);
+                if (s.back() == '>') {
+                    embd_inp.erase(embd_inp.begin() + i + 1, embd_inp.begin() + j + 1);
+                    embd_inp[i] = llama_token_eos();
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
     const int n_ctx = llama_n_ctx(ctx);
 
     if ((int) embd_inp.size() > n_ctx - 4) {
@@ -201,13 +215,13 @@ int main(int argc, char ** argv) {
     }
 
     // prefix & suffix for instruct mode
-    const auto inp_pfx = ::llama_tokenize(ctx, "\n\n### Instruction:\n\n", true);
-    const auto inp_sfx = ::llama_tokenize(ctx, "\n\n### Response:\n\n", false);
+    const auto inp_pfx = ::llama_tokenize(ctx, "Question: ", true);
+    const auto inp_sfx = ::llama_tokenize(ctx, "", false);
 
     // in instruct mode, we inject a prefix and a suffix to each input by the user
     if (params.instruct) {
         params.interactive_first = true;
-        params.antiprompt.push_back("### Instruction:\n\n");
+        params.antiprompt.push_back("Observation:");
     }
 
     // enable interactive mode if reverse prompt or interactive start is specified
@@ -529,8 +543,9 @@ int main(int argc, char ** argv) {
                 // potentially set color to indicate we are taking user input
                 set_console_color(con_st, CONSOLE_COLOR_USER_INPUT);
 
-                if (params.instruct) {
-                    printf("\n> ");
+                if (params.instruct && !is_antiprompt) {
+                    printf("\n[user]\n");
+                    fflush(stdout);
                 }
 
                 std::string buffer;
