@@ -23,7 +23,6 @@ def forward_user_input(process):
 
 def main():
   p = subprocess.Popen(['stdbuf', '-o0', 'examples/vicuna.sh'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
-  #p = subprocess.Popen(['stdbuf', '-o0'] + ["examples/vicuna.sh"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
 
   # Create and start a thread for reading the user input
   input_thread = threading.Thread(target=forward_user_input, args=[p])
@@ -60,23 +59,14 @@ def main():
     elif buffer.startswith("Observation:"):
       time.sleep(1)
       items = search(query)['items']
-      result = "###\\".join(["Title: %s\\Snippet: %s\\" % (item["title"], item["snippet"]) for item in items[:2]])
-      #print('search results:', result)
-      result += "\n\n"
+      result = "\\\n###\\\n".join(["Title: %s\\\nSnippet: %s" % (item["title"], item["snippet"]) for item in items[:2]])
+      print(result)
+      result += "\n"
       p.stdin.write(result.encode())
       p.stdin.flush()
       buffer = ""
 
   raise Exception('exited unexpectedly')
-
-  output_thread = threading.Thread(target=read_output, args=(p))
-  output_thread.start()
-
-  while True:
-    # Collect user input and put it into the queue
-    user_input = input()
-    print("foo: ", user_input)
-    input_queue.put(user_input)
 
 if __name__ == "__main__":
   main()
